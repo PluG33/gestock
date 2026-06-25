@@ -11566,16 +11566,31 @@ function decodeIOSPhoto(input){
   reader.onload=(e)=>{
     const img=new Image();
     img.onload=()=>{
-      const cv=document.getElementById('qc'); cv.width=img.width;cv.height=img.height;
-      const ctx=cv.getContext('2d');ctx.drawImage(img,0,0);
-      const data=ctx.getImageData(0,0,cv.width,cv.height);
-      const code=jsQR(data.data,data.width,data.height,{inversionAttempts:'attemptBoth'});
+      // L'iPhone produit des photos en très haute résolution (~12 Mpx).
+      // En pleine résolution : (1) Safari iOS peut renvoyer un canvas vide
+      // (limite mémoire), (2) jsQR peine à trouver le QR. On décode donc à
+      // plusieurs résolutions raisonnables, de la plus légère à la plus fine,
+      // pour gérer aussi bien un QR pris de près que de loin.
+      const cv=document.getElementById('qc');
+      const ctx=cv.getContext('2d',{willReadFrequently:true});
+      let code=null;
+      for(const maxDim of [1000,1600,2400]){
+        const scale=Math.min(1, maxDim/Math.max(img.width,img.height));
+        const w=Math.max(1,Math.round(img.width*scale));
+        const h=Math.max(1,Math.round(img.height*scale));
+        cv.width=w; cv.height=h;
+        ctx.clearRect(0,0,w,h);
+        ctx.drawImage(img,0,0,w,h);
+        const data=ctx.getImageData(0,0,w,h);
+        code=jsQR(data.data,data.width,data.height,{inversionAttempts:'attemptBoth'});
+        if(code) break;
+      }
       if(code){
         const mode=window._scanMode; window._scanMode=null;
         if(mode==='plan'&&currentPlanZone){assignToZone(code.data);}
         else if(mode==='inventory'){openLotForEdit(code.data);}
         else{fillFromQR(code.data);}
-      } else {toast('QR non reconnu — réessayez',false);}
+      } else {toast('QR non reconnu — cadrez-le bien net et au centre, puis réessayez',false);}
     };
     img.src=e.target.result;
   };
