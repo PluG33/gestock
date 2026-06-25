@@ -1,0 +1,22 @@
+# netlify.toml — à placer à la RACINE du repo (à côté de index.html)
+# Verrouille la config (prioritaire sur les réglages de l'interface Netlify)
+
+[build]
+  publish = "."        # site = racine du repo
+  command = ""         # aucun build : fichier HTML autonome
+
+# ── Anti-cache sur le HTML ──────────────────────────────────────────
+# Sans ça, après un déploiement les testeurs (iPhone/Android) peuvent
+# garder l'ancienne version en cache. On force la revalidation.
+[[headers]]
+  for = "/*.html"
+  [headers.values]
+    Cache-Control = "public, max-age=0, must-revalidate"
+
+# ── En-têtes de sécurité de base ────────────────────────────────────
+[[headers]]
+  for = "/*"
+  [headers.values]
+    X-Content-Type-Options = "nosniff"
+    X-Frame-Options = "SAMEORIGIN"
+    Referrer-Policy = "strict-origin-when-cross-origin"
